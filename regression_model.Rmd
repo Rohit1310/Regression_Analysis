@@ -1,0 +1,128 @@
+---
+title: "RegressionModels"
+author: "Rohit Jain"
+date: "October 9, 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+##  Relationship between a set of variables and miles per gallon (MPG)
+
+### Data Preprocessing and Exploratory Data Analysis:
+
+Under the below block, Data is being preprocessed to use in the regression model for the relationship between MPG and tranmission and being analysed for any initaial trends i.e; EDA. 
+
+#### Data Preprocessing:
+```{r data preprocessing, warning=FALSE}
+dt <- mtcars
+str(dt)
+lb <- factor(dt$am)
+levels(lb)[levels(lb)== 0] <- "automatic"
+levels(lb)[levels(lb)== 1] <- "manual"
+dt$trans <- lb
+```
+
+#### EDA
+
+* Figure 1 in the Appendix is to give the maximun, minumum and the average millage for the cars on the basis of transmission which shows that the maunal transmmsion has better measures then the automatic transmission.
+* Figure 2 in the Appendix is the histogram for the milles per gallon divided on the basis of the transmission and it gives that the range of millage is [10,25) and [15,35] for the automatic and manual transmission respectively.
+* Figure 3 in the Appendix gives the correlation of diffrent variabls in the mtcars data set.
+* t-test:
+```{r t-test}
+t.test(dt$mpg~dt$trans,conf.level=0.95)
+```
+* t-test concultion: The p-value is 0.001374, we may reject the null hypothesis and conclude, that automatic transmission cars have lower mpg compared with manual transmission cars - but this assumption is based on all other characteristics of automatic transmission cars and manual transmission cars are same (e.g: both have same weight distribution). This needs to be further explored in a multiple linear regression analysis.
+
+
+### Regression Models:
+
+#### Model1: Simple multiple regression
+
+```{r regression model1, echo = TRUE, warning=FALSE}
+MultilinearMod <- lm(mpg ~ ., data=mtcars)  # build linear regression model on full data
+summary(MultilinearMod)
+```
+* form the above model it is clear that the variable which are siginficant for the mpg prediction are am, qsec, wt so now we will use a stepwise algorithm, to choose the best model.
+
+#### Model2: Step Model
+
+```{r step, warning=FALSE}
+stepfit = step(lm(data = mtcars, mpg ~ .),trace=0,steps=10000)
+summary(stepfit)
+```
+* we found from the above step model that the model contain 3 vaibles 
+1. am
+2. wt
+3. qsec 
+
+Residue square for the above model is 0.85.
+
+#### Model3: Best fit model
+
+```{r finalModel, warning=FALSE}
+finalfit <- lm(mpg ~ trans:wt + trans:qsec, data = dt)
+summary(finalfit)
+
+```
+
+#### Summary
+Interpreting the results, we can see this model has a 89.5% total variance with an adjusted variance of 0.879. By adding the coefficients, we have the following conclusions:
+
+* When the weight increased by 1000 lbs, the mpg decreased by -3.176 for automatic transmission cars, and -6.09 for manual transmission cars.
+* With increasing car weight we should choose manual transmission cars.
+* When the acceleration speed dropped, and 1/4 mile time increased (by 1 sec), the mpg factor increased by 0.834 miles for automatic transmission cars, and 1.446 miles for manual transmission cars
+* With lower acceleration speed, but same weight, manual transmission cars are better for mpg
+* Figure 4 in the Appendix give us the Residue relations.
+
+### Main conclusion
+The mpg is largely determined by the interplay between weight, acceleration and transmission.
+therefore we cannot perfectly answer which transmission mode is best as mpg depende upon weight, acceleration and transmission significantly. 
+
+
+### Appendix
+
+Supporting graphs and figures:
+
+* Figure 1:
+
+```{r boxplot, echo=FALSE, warning=FALSE}
+library(ggplot2)
+g <- ggplot(data = dt, aes(as.factor(am),mpg, fill = factor(am,labels=c("automatic","manual"))))+
+            geom_boxplot()+
+            labs(title = "Fig1: Box plot for Transmission type", 
+                  x = "Transmission Type" ,
+                  y = "Miles/(US)gallon" )+
+            guides(fill=guide_legend(title=NULL))
+print(g)
+```
+
+* Figure 2:
+
+```{r hist, echo=FALSE, warning=FALSE, message=FALSE}
+
+h <- ggplot(data = dt, aes(x = mpg)) +
+            geom_histogram(colour="black") +
+            facet_grid( . ~ trans)+
+            labs(title = "Fig2: histogram of miles per gallon for Transmission type", 
+                  y = "Count" ,
+                  x = "Miles/(US)gallon" )
+
+print(h)
+```
+
+* Figure 3:
+
+```{r correlationgraph, echo=FALSE, warning=FALSE, message=FALSE}
+pairs(mpg ~ ., data = mtcars, main = "Fig3: Correlation diagram")
+```
+
+* Figure 4:
+
+```{r residueplot, echo=FALSE, warning=FALSE, message=FALSE}
+par(mfrow=c(2,2))    
+plot(finalfit, main="Fig4: Residual graph")
+```
